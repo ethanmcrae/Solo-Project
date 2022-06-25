@@ -10,6 +10,7 @@ import IconButton from '@mui/material/IconButton';
 import MenuIcon from '@mui/icons-material/Menu';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import SideBar from './SideBar.jsx';
+import Cookies from 'js-cookie';
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -41,7 +42,7 @@ export default function Header() {
               <MenuIcon />
             </IconButton>
             <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-              Menu
+              { Cookies.get('firstName') }
             </Typography>
             <Typography variant="h1" id="title" component="div" sx={{ flexGrow: 1 }}>
               Wordle xE

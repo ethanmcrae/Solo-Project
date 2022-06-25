@@ -46,7 +46,7 @@ authController.signIn = (req, res, next) => {
 
   // Search database for matching user
   const values = [ email ];
-  const query = 'SELECT user_id, pass FROM logins WHERE email = $1'
+  const query = 'SELECT user_id, pass, first, last FROM logins WHERE email = $1'
   db.query(query, values)
     .then(async (data) => {
       // If a user doesn't exist: respond with an invalid login response
@@ -54,7 +54,7 @@ authController.signIn = (req, res, next) => {
       // If the user does exist
       else {
         // Destructure hash and id from the database response
-        const { pass: hash, user_id } = data.rows[0]; 
+        const { pass: hash, user_id, first, last } = data.rows[0]; 
         // Log
         console.log('Data ->', data.rows[0]);
         console.log('Finding user ->', user_id);
@@ -69,6 +69,8 @@ authController.signIn = (req, res, next) => {
           if (!remember) settings.expires = new Date(Date.now() + 3600000); // Only save login for 1 hour if remember is false
           // Set session cookie
           res.cookie('id', user_id, settings);
+          res.cookie('firstName', first);
+          res.cookie('lastName', last);
         }
       }
       // Continue to the next middleware

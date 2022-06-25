@@ -24,6 +24,9 @@ app.post('/signin', auth.signIn, (req, res) => (
 app.get('/validate', auth.validate, (req, res) => (
   res.status(200).json({ valid: res.locals.valid })
 ));
+app.post('/load', word.load, (req, res) => (
+  res.status(200).json(res.locals)
+));
 
 app.post('/', word.exists, word.check, (req, res) => (
   res.status(res.locals.status).json(res.locals.wordStatus || [])

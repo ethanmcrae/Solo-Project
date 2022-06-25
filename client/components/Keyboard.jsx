@@ -1,10 +1,10 @@
 import React from 'react';
 
-const Keyboard = ({ letters, setLetters, row1, setRow1, row2, setRow2, row3, setRow3, row4, setRow4, row5, setRow5, row6, setRow6, complete, setComplete, remainingWords, setRemainingWords }) => {
+const Keyboard = ({ letters, setLetters, currentRow, setCurrentRow, row1, setRow1, row2, setRow2, row3, setRow3, row4, setRow4, row5, setRow5, row6, setRow6, complete, setComplete, remainingWords, setRemainingWords }) => {
   // Handle key presses from a keyboard
   const handleKeyPress = (e) => {
     // Exit early when the game is already won
-    if (complete) return;
+    if (complete || !e.key) return;
     // Determine key
     const key = e.key.toLowerCase();
     // If the key is an alphabet character
@@ -39,7 +39,7 @@ const Keyboard = ({ letters, setLetters, row1, setRow1, row2, setRow2, row3, set
           headers: {
             'Content-Type': 'application/json'
           },
-          body: `{"word": "${letters.join('')}"${!row1 ? ', "first": "true"' : ''}}`
+          body: `{"word": "${letters.join('')}", "currentRow": "${currentRow}"}`
         })
           .then(res => res.ok ? res.json() : alert('Invalid word'))
           .then((data) => {
@@ -75,7 +75,8 @@ const Keyboard = ({ letters, setLetters, row1, setRow1, row2, setRow2, row3, set
                 .then(possibleWords => {
                   console.log('Possible Words ->', possibleWords);
                   setRemainingWords([...remainingWords, possibleWords.length]);
-                })
+                });
+              setCurrentRow(currentRow + 1);
             }
           })
           .catch(err => {

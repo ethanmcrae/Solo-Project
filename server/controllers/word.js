@@ -9,6 +9,17 @@ const _getTodaysWord = async () => {
   if (data.rows[0]) return data.rows[0].word;
 }
 
+const _getTodaysGame = async (id) => {
+  // When searching for a game, search for a game that matches the "user_id" and "friend" and date)
+  const values = [ id, (new Date()).toDateString() ];
+  const query = 'SELECT * FROM games WHERE (user_id = $1 AND friend IS NULL AND date = $2)';
+  const data = await db.query(query, values);
+  // If there was a match return it
+  if (data.rowCount) return data.rows[0];
+  // Otherwise return null
+  return null;
+}
+
 wordController.post = async (req, res, next) => {
   const { word } = req.body;
   if (word) {
@@ -75,7 +86,11 @@ wordController.check = async (req, res, next) => {
   if (res.locals.status === 400) return next();
 
   // Get the 5 letter word from the request
-  const { word, first } = req.body;
+  const { word, currentRow } = req.body;
+  console.log('Current Row ->', currentRow);
+
+  // Retrieve user id from cookies
+  const { id } = req.cookies;
 
   // Get the word of the day
   const correctWord = await _getTodaysWord();
@@ -89,19 +104,55 @@ wordController.check = async (req, res, next) => {
 
   // TODO: Add a check to only show 1 yellow when there is 1 of the letter
 
+  // Update this row in the current game's database
+  const game = await _getTodaysGame(id);
+
+  // Construct a query to update the current row
+  const values = [ game.current_row + 1, game.game_id ];
+  const query = 'UPDATE games SET current_row = $1 WHERE game_id = $2';
+  // Update the current row in the database
+  try {
+    await db.query(query, values);
+  } catch (err) {
+    return next({
+      message: 'Failed to update row.',
+      log: err.message,
+      status: 500
+    });
+  }
+
   // Return status codes for each letter
   const wordStatus = []
-  for (let i = 0; i < word.length; i++) {
+  for (let i = 0; i < 5; i++) {
     // The current letter
     const letter = word[i];
     const correctLetter = correctWord[i];
+    let color;
 
     // Check to see if the letter is in the correct spot (status code: green)
-    if (letter === correctLetter) wordStatus.push('green');
+    if (letter === correctLetter) color = 'green';
     // Check to see if the letter is in a different spot (status code: yellow)
-    else if (correctWord.includes(letter)) wordStatus.push('yellow');
+    else if (correctWord.includes(letter)) color = 'yellow';
     // Otherwise, the letter is not in this word (status code: black)
-    else wordStatus.push('black');
+    else color = 'black';
+
+    // Apply this color
+    wordStatus.push(color);
+
+    console.log('Game ->', game);
+
+    // Construct a query to update this row in the database
+    const values = [ letter, color, game['row' + currentRow + '_id'] ];
+    const query = `UPDATE rows SET char${i + 1} = $1, color${i + 1} = $2 WHERE row_id = $3`;
+    try {
+      await db.query(query, values);
+    } catch (err) {
+      return next({
+        message: 'Failed to update the game.',
+        log: err.message,
+        status: 500
+      });
+    }
   }
 
   /**
@@ -109,31 +160,73 @@ wordController.check = async (req, res, next) => {
    * --------
    * 
    * 1. [X] Uncomment the following code
-   * 2. [ ] We can't use "first".
-   *  2a. [ ] Refactor the front-end with an added state: "currentRow"
-   *  2b. [ ] Add a column to the "games" table: "current_row" (SMALLINT)
-   *  2c. [ ] Update the currentRow to the database
-   * 3. [ ] Load the latest game data on page load
-   *  3a. [ ] If it's not loaded yet: create 6 rows and assign those to a new game in the database
+   * 2. [X] We can't use "first".
+   *  2a. [X] Refactor the front-end with an added state: "currentRow"
+   *  2b. [X] Add a column to the "games" table: "current_row" (SMALLINT)
+   *  2c. [X] Update the currentRow to the database
+   * 3. [X] Load the latest game data on page load
+   *  3a. [X] If it's not loaded yet: create 6 rows and assign those to a new game in the database
    *  3b. [X] Also add a "friend" (INT) column in the "games" table. (null will represent DAILY, otherwise it will represent a user_id)
-   *  3c. [ ] When searching for a game, search for a game that matches the "user_id" and "friend" (null) and date (new Date.toDateString())
+   *  3c. [X] When searching for a game, search for a game that matches the "user_id" and "friend" (null) and date (new Date.toDateString())
+   * 4. [ ] When you send data, update the row in the database
    */
-
-  // If this is the first row
-  if (currentRow === 1) {
-    // Create a game in the database
-    const values = [];
-    const query = 'INSERT INTO games (user_id, created, row)';
-    db.query
-  }
-
-  // Update the row in the database
-  const values = [ word[0], word[1], word[2], word[3], word[4], wordStatus[0], wordStatus[1], wordStatus[2], wordStatus[3], wordStatus[4] ];
-  const query = 'INSERT INTO rows (char1, char2, char3, char4, char5, color1, color2, color3, color4, color5), VALUES ($1 $2 $3 $4 $5 $6 $7 $8 $9 $10)';
-  const row = {}
 
   res.locals.wordStatus = wordStatus;
   return next();
+}
+
+wordController.load = async (req, res, next) => {
+  const { id } = req.cookies;
+  const game = await _getTodaysGame(id);
+  if (game) {
+    console.log('Game ->', game);
+    // Add the currentRow to response
+    res.locals.currentRow = game.current_row;
+    // Construct a query to gather row data
+    const query = 'SELECT * FROM rows WHERE row_id = $1';
+    // Query each row's data
+    for (let i = 1; i <= 6; i++) { // TODO: Change 6 to the current_row?
+      const values = [ game['row' + i + '_id'] ];
+      const rowData = await db.query(query, values);
+      // Add the row data to response if it's not empty
+      if (rowData.rows[0].char1 !== '0') {
+        const row = rowData.rows[0];
+        const rowStatus = [];
+        for (let j = 1; j <= 5; j++) {
+          rowStatus.push({ letter: row['char' + j], color: row['color' + j] });
+        }
+        // Add the row status to the response
+        res.locals['row' + i] = rowStatus;
+      }
+    }
+    return next();
+  }
+  // There were no matches
+  else {
+    // Construct query to create rows
+    const rowValues = [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ];
+    const rowQuery = 'INSERT INTO rows (char1, char2, char3, char4, char5, color1, color2, color3, color4, color5) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING row_id';
+    // Create 6 empty rows
+    const rowIds = []
+    for (let i = 0; i < 6; i++) {
+      const rowData = await db.query(rowQuery, rowValues);
+      rowIds.push(rowData.rows[0].row_id);
+    }
+    // Construct a query to create a game
+    const gameValues = [ id, Date.now(), (new Date).toDateString(), rowIds[0], rowIds[1], rowIds[2], rowIds[3], rowIds[4], rowIds[5], 1 ];
+    const gameQuery = 'INSERT INTO games (user_id, created, date, row1_id, row2_id, row3_id, row4_id, row5_id, row6_id, current_row) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)';
+    try {
+      // Add those 6 rows to a new game
+      await db.query(gameQuery, gameValues);
+      return next();
+    } catch (err) {
+      return next({
+        message: 'Failed to add a create a new game.',
+        log: err.message,
+        status: 500
+      });
+    }
+  }
 }
 
 wordController.statistics = (req, res, next) => {
