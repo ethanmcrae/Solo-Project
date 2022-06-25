@@ -7,11 +7,12 @@ module.exports = {
     filename: 'bundle.js',
     path: path.resolve(__dirname, 'bundle')
   },
+  devtool: 'eval-cheap-source-map',
   mode: process.env.NODE_ENV,
   module: {
     rules: [
       {
-        test: /\.jsx?$/,
+        test: /\.jsx?$/i,
         exclude: /node_modules/,
         use: {
           loader: 'babel-loader',
@@ -19,6 +20,15 @@ module.exports = {
             presets: [ '@babel/preset-env', '@babel/preset-react' ]
           }
         }
+      },
+      {
+        test: /\.css$/i,
+        use: ['style-loader', 'css-loader']
+      },
+      {
+        test: /\.woff$/i,
+        exclude: /node_modules/,
+        type: 'asset/resource'
       }
     ]
   },
@@ -26,14 +36,15 @@ module.exports = {
     host: 'localhost',
     hot: true,
     static: {
-      directory: path.join(__dirname, 'build'),
+      directory: path.join(__dirname, 'bundle'),
       publicPath: '/'
     },
     compress: false,
     port: 8080,
+    historyApiFallback: true,
     proxy: {
-      './': {
-        target: 'https://localhost:3000/',
+      '/': {
+        target: 'http://localhost:3000/',
         secure: false
       }
     }
