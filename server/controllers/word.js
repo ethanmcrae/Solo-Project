@@ -108,29 +108,29 @@ wordController.check = async (req, res, next) => {
    * LEFT OFF
    * --------
    * 
-   * 1. Uncomment the following code
-   * 2. We can't use "first".
-   *  2a. Refactor the front-end with an added state: "currentRow"
-   *  2b. Add a column to the "games" table: "current_row" (SMALLINT)
-   *  2c. Update the currentRow to the database
-   * 3. Load the latest game data on page load
-   *  3a. If it's not loaded yet: create 6 rows and assign those to a new game in the database
-   *  3b. Also add a "for" (INT) column in the "games" table. (0 will represent DAILY, otherwise it will represent a user_id)
-   *  3c. When searching for a game, search for a game that matches the "user_id" and "for" (0). (If it was created a different day: scratch it)
+   * 1. [X] Uncomment the following code
+   * 2. [ ] We can't use "first".
+   *  2a. [ ] Refactor the front-end with an added state: "currentRow"
+   *  2b. [ ] Add a column to the "games" table: "current_row" (SMALLINT)
+   *  2c. [ ] Update the currentRow to the database
+   * 3. [ ] Load the latest game data on page load
+   *  3a. [ ] If it's not loaded yet: create 6 rows and assign those to a new game in the database
+   *  3b. [X] Also add a "friend" (INT) column in the "games" table. (null will represent DAILY, otherwise it will represent a user_id)
+   *  3c. [ ] When searching for a game, search for a game that matches the "user_id" and "friend" (null) and date (new Date.toDateString())
    */
 
-  // // If this is the first row
-  // if (first) {
-  //   // Create a game in the database
-  //   const values = [];
-  //   const query = 'INSERT INTO games (user_id, created, row)';
-  //   db.query
-  // }
+  // If this is the first row
+  if (currentRow === 1) {
+    // Create a game in the database
+    const values = [];
+    const query = 'INSERT INTO games (user_id, created, row)';
+    db.query
+  }
 
-  // // Create a row in the database
-  // const values = [ word[0], word[1], word[2], word[3], word[4], wordStatus[0], wordStatus[1], wordStatus[2], wordStatus[3], wordStatus[4] ];
-  // const query = 'INSERT INTO rows (char1, char2, char3, char4, char5, color1, color2, color3, color4, color5), VALUES ($1 $2 $3 $4 $5 $6 $7 $8 $9 $10)';
-  // const row = {}
+  // Update the row in the database
+  const values = [ word[0], word[1], word[2], word[3], word[4], wordStatus[0], wordStatus[1], wordStatus[2], wordStatus[3], wordStatus[4] ];
+  const query = 'INSERT INTO rows (char1, char2, char3, char4, char5, color1, color2, color3, color4, color5), VALUES ($1 $2 $3 $4 $5 $6 $7 $8 $9 $10)';
+  const row = {}
 
   res.locals.wordStatus = wordStatus;
   return next();

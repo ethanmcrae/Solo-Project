@@ -9,8 +9,6 @@ const Keyboard = ({ letters, setLetters, row1, setRow1, row2, setRow2, row3, set
     const key = e.key.toLowerCase();
     // If the key is an alphabet character
     if (/^[a-z]$/.test(key)) {
-      // Log
-      console.log('Key ->', key);
       // If the character length is less than 5 add the letter
       if (letters.length < 5) setLetters([...letters, key]);
     } else if (/^backspace$/.test(key)) {
